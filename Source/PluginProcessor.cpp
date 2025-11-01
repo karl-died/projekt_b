@@ -19,14 +19,20 @@ OSC_Spect_RecieverAudioProcessor::OSC_Spect_RecieverAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
+    noise(std::make_unique<NoiseGenerator>())
 #endif
 {
     dataListener = std::make_unique<MyOSCListener>([this] (const juce::OSCMessage& message) {
         oscMessageReceived(message);
     });
     dataListener->connectTo(DEFAULT_PORT);
-    //dataListener->listenTo(dataAddress);
+    
+    amplitudes = std::vector<float>(fftSize / 2, 0.0f);
+    fft = std::make_unique<juce::dsp::FFT>(fftOrder);
+    fft_in = std::vector<std::complex<float>>(fftSize, 0.0);
+    fft_out[0] = std::vector<std::complex<float>>(fftSize, 0.0);
+    fft_out[1] = std::vector<std::complex<float>>(fftSize, 0.0);
     
 }
 
@@ -101,6 +107,16 @@ void OSC_Spect_RecieverAudioProcessor::prepareToPlay (double sampleRate, int sam
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    
+    projectSampleRate = sampleRate;
+    
+    for(int i = 0; i < fftSize / 2; i++)
+        fft_in[i] = std::polar(amplitudes[i], 0.0f);
+    
+    for(int i = 1; i < fftSize / 2; i++)
+        fft_in[fftSize - i] = std::conj(fft_in[i]);
+    
+    fft->perform(&fft_in[0], &fft_out[0][0], true);
 }
 
 void OSC_Spect_RecieverAudioProcessor::releaseResources()
@@ -156,11 +172,41 @@ void OSC_Spect_RecieverAudioProcessor::processBlock (juce::AudioBuffer<float>& b
     // the samples and the outer loop is handling the channels.
     // Alternatively, you can process the samples with the channels
     // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
+    auto* channel0Data = buffer.getWritePointer (0);
 
-        // ..do something to the data...
+    float d = 1.0 / fftSize;
+    for (int sample = 0; sample < buffer.getNumSamples(); sample++)
+    {
+        channel0Data[sample] = d * sampleCounter * fft_out[outIndex][sampleCounter].real();
+        channel0Data[sample] += (1 - d * sampleCounter) * fft_out[(outIndex + 1) % 2][sampleCounter].real();
+        
+        sampleCounter++;
+        if(sampleCounter == fftSize)
+        {
+            if(amplitudesMutex.try_lock())
+            {
+                for(int i = 0; i < fftSize / 2; i++)
+                    fft_in[i] = std::polar(amplitudes[i], (float)(2 * M_PI * noise->getNextValue()));
+                
+                for(int i = 1; i < fftSize / 2; i++)
+                    fft_in[fftSize - i] = std::conj(fft_in[i]);
+                
+                fft->perform(&fft_in[0], &fft_out[outIndex][0], true);
+                outIndex++;
+                outIndex %= 2;
+                amplitudesMutex.unlock();
+            }
+            
+            sampleCounter = 0;
+        }
+    }
+    
+    for (int channel = 1; channel < totalNumInputChannels; ++channel)
+    {
+        auto* channelData = buffer.getWritePointer(channel);
+        for(int sample = 0; sample < buffer.getNumSamples(); sample++)
+            channelData[sample] = channel0Data[sample];
+
     }
 }
 
@@ -199,13 +245,26 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 void OSC_Spect_RecieverAudioProcessor::oscMessageReceived(const juce::OSCMessage& message)
 {
     juce::String pattern = message.getAddressPattern().toString();
-    std::cout << pattern;
-    for(auto& arg : message)
+    
+    std::lock_guard<std::mutex> guard(amplitudesMutex);
+    std::vector<float> rawAmplitudes(fftSize / 2, 0.0);
+    for(int i = 0; i < juce::jmin(message.size(), fftSize / 2); i++)
     {
-        if(arg.isFloat32())
-            std::cout << ": " << arg.getFloat32();
+        if(message[i].isFloat32())
+            rawAmplitudes[i] = message[i].getFloat32();
     }
-    std::cout << std::endl;
+    amplitudes[0] = rawAmplitudes[0];
+    float centerFreq = 1000.0f;
+    float freqInc = projectSampleRate / (fftSize / 2);
+    float centerBin = centerFreq / freqInc;
+    float centerIndex = centerBin / (fftSize / 2);
+    float exponent = log(0.5) / log(centerIndex);
+    float d = 2.0 / fftSize;
+    for(int i = 1; i < fftSize / 2; i++)
+    {
+        float index = (fftSize / 2) * pow(i * d, exponent);
+        amplitudes[i] = rawAmplitudes[(int)index];
+    }
 }
 
 void OSC_Spect_RecieverAudioProcessor::setOSCPort(int port)

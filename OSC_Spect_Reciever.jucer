@@ -4,6 +4,8 @@
               useAppConfig="0" addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="fJHqaS" name="OSC_Spect_Reciever">
     <GROUP id="{552702E1-ECDD-40FF-67E8-1F40451B3819}" name="Source">
+      <FILE id="fDq4Ii" name="NoiseGenerator.h" compile="0" resource="0"
+            file="Source/NoiseGenerator.h"/>
       <FILE id="bBsJGH" name="MyOSCListener.h" compile="0" resource="0" file="Source/MyOSCListener.h"/>
       <FILE id="Jro4WW" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>

@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include "MyOSCListener.h"
+#include "NoiseGenerator.h"
 
 //==============================================================================
 /**
@@ -66,7 +67,24 @@ private:
     const char* dataAddress = "/chan1";
     const char* metaDataAddress = "";
     
+    double projectSampleRate = 48000;
+    
     std::unique_ptr<MyOSCListener> dataListener;
+    
+    int fftOrder = 9;
+    int fftSize = 1 << fftOrder;
+    
+    std::mutex amplitudesMutex;
+    std::vector<float> amplitudes;
+    std::unique_ptr<juce::dsp::FFT> fft;
+    std::vector<std::complex<float>> fft_in;
+    std::array<std::vector<std::complex<float>>, 2> fft_out;
+    
+    int outIndex = 0;
+    
+    std::unique_ptr<NoiseGenerator> noise;
+    
+    int sampleCounter = 0;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSC_Spect_RecieverAudioProcessor)
 };
