@@ -13,7 +13,26 @@
 OSC_Spect_RecieverAudioProcessorEditor::OSC_Spect_RecieverAudioProcessorEditor (OSC_Spect_RecieverAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-   
+    addAndMakeVisible(portLabel);
+    portLabel.setText("PORT: ", juce::dontSendNotification);
+    portLabel.attachToComponent(&portInputLabel, true);
+    portLabel.setJustificationType(juce::Justification::right);
+    addAndMakeVisible(portInputLabel);
+    portInputLabel.setEditable(true);
+    portInputLabel.onTextChange = [this] {
+        audioProcessor.setOSCPort(portInputLabel.getText().getIntValue());
+    };
+    
+    addAndMakeVisible(addressLabel);
+    addressLabel.setText("ADDRESS: ", juce::dontSendNotification);
+    addressLabel.attachToComponent(&addressInputLabel, true);
+    addressLabel.setJustificationType(juce::Justification::right);
+    addAndMakeVisible(addressInputLabel);
+    addressInputLabel.setEditable(true);
+    addressInputLabel.onTextChange = [this] {
+        audioProcessor.setOSCAddress(addressInputLabel.getText().toRawUTF8());
+    };
+    
     setSize (400, 300);
 }
 
@@ -29,11 +48,10 @@ void OSC_Spect_RecieverAudioProcessorEditor::paint (juce::Graphics& g)
 
     g.setColour (juce::Colours::white);
     g.setFont (juce::FontOptions (15.0f));
-    g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);
 }
 
 void OSC_Spect_RecieverAudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
+    portInputLabel.setBounds(100, 20, getWidth() - 20, 20);
+    addressInputLabel.setBounds(100, 60, getWidth() - 20, 20);
 }

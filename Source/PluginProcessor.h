@@ -58,6 +58,7 @@ public:
     void oscMessageReceived (const juce::OSCMessage& message);
     
     void setOSCPort(int);
+    void setOSCAddress(const char*);
 
 private:
     //=============================================================================

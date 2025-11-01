@@ -22,9 +22,12 @@ OSC_Spect_RecieverAudioProcessor::OSC_Spect_RecieverAudioProcessor()
                        )
 #endif
 {
-    dataListener = std::make_unique<MyOSCListener>(DEFAULT_PORT, dataAddress, [this] (const juce::OSCMessage& message) {
+    dataListener = std::make_unique<MyOSCListener>([this] (const juce::OSCMessage& message) {
         oscMessageReceived(message);
     });
+    dataListener->connectTo(DEFAULT_PORT);
+    //dataListener->listenTo(dataAddress);
+    
 }
 
 OSC_Spect_RecieverAudioProcessor::~OSC_Spect_RecieverAudioProcessor()
@@ -195,5 +198,22 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 
 void OSC_Spect_RecieverAudioProcessor::oscMessageReceived(const juce::OSCMessage& message)
 {
-    std::cout << message.size() << std::endl;
+    juce::String pattern = message.getAddressPattern().toString();
+    std::cout << pattern;
+    for(auto& arg : message)
+    {
+        if(arg.isFloat32())
+            std::cout << ": " << arg.getFloat32();
+    }
+    std::cout << std::endl;
+}
+
+void OSC_Spect_RecieverAudioProcessor::setOSCPort(int port)
+{
+    dataListener->connectTo(port);
+}
+
+void OSC_Spect_RecieverAudioProcessor::setOSCAddress(const char* address)
+{
+    //dataListener->listenTo(address);
 }

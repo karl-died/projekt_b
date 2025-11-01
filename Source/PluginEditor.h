@@ -30,7 +30,11 @@ private:
     // access the processor object that created it.
     OSC_Spect_RecieverAudioProcessor& audioProcessor;
     
+    juce::Label portLabel;
+    juce::Label portInputLabel;
     
-
+    juce::Label addressLabel;
+    juce::Label addressInputLabel;
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSC_Spect_RecieverAudioProcessorEditor)
 };

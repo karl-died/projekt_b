@@ -13,20 +13,31 @@
 
 class MyOSCListener : public juce::Component,
                       private juce::OSCReceiver,
-                      private juce::OSCReceiver::ListenerWithOSCAddress<juce::OSCReceiver::MessageLoopCallback>
+private juce::OSCReceiver::Listener<juce::OSCReceiver::RealtimeCallback>
 {
 public:
-    MyOSCListener(int portNumber, const char* address, std::function<void(const juce::OSCMessage&)> callback)
+    MyOSCListener(std::function<void(const juce::OSCMessage&)> callback)
     {
-        this->portNumber = portNumber;
-        this->address = address;
         this->callback = callback;
-        connect(portNumber);
-        addListener(this, address);
+        addListener(this);
     }
     ~MyOSCListener()
     {
+        removeListener(this);
         disconnect();
+    }
+    
+    void connectTo(int port)
+    {
+        disconnect();
+        if(!connect(port))
+        {
+            std::cout << "OSC connection failed on port " << port << std::endl;
+        }
+        else
+        {
+            std::cout << "OSC connection succeeded on port " << port << std::endl;
+        }
     }
     
     void oscMessageReceived (const juce::OSCMessage& message) override
@@ -34,8 +45,12 @@ public:
         callback(message);
     }
     
+    void oscBundleReceived (const juce::OSCBundle& bundle) override
+    {
+        for(auto& el : bundle)
+            callback(el.getMessage());
+    }
+    
 private:
-    int portNumber = 7000;
-    const char* address;
     std::function<void(const juce::OSCMessage&)> callback;
 };
