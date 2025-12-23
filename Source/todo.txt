@@ -1,0 +1,11 @@
+
+- Filter by Address
+- Smoother signal
+    - interpolation between frames (60Hz)?
+    - sin squared window?
+- variable FFT Size
+- better frequency redistribution
+    - lagrange interpolation
+- variable frequency distribution
+- gain parameter
+- fix leaked OwnedArray
