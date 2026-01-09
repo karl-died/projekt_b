@@ -10,8 +10,8 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-OSC_Spect_RecieverAudioProcessorEditor::OSC_Spect_RecieverAudioProcessorEditor (OSC_Spect_RecieverAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
+OSC_Spect_RecieverAudioProcessorEditor::OSC_Spect_RecieverAudioProcessorEditor (OSC_Spect_RecieverAudioProcessor& p, AudioProcessorValueTreeState& vts)
+    : AudioProcessorEditor (&p), audioProcessor (p), valueTreeState(vts)
 {
     addAndMakeVisible(portLabel);
     portLabel.setText("PORT: ", juce::dontSendNotification);
@@ -19,6 +19,9 @@ OSC_Spect_RecieverAudioProcessorEditor::OSC_Spect_RecieverAudioProcessorEditor (
     portLabel.setJustificationType(juce::Justification::right);
     addAndMakeVisible(portInputLabel);
     portInputLabel.setEditable(true);
+    juce::Value portValue = valueTreeState.getParameterAsValue("port");
+    juce::String initalPort = portValue.toString().dropLastCharacters(2);
+    portInputLabel.setText(initalPort, juce::dontSendNotification);
     portInputLabel.onTextChange = [this] {
         audioProcessor.setOSCPort(portInputLabel.getText().getIntValue());
     };
