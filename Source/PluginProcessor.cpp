@@ -8,6 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#define M_PI 3.14159265358
 
 //==============================================================================
 OSC_Spect_RecieverAudioProcessor::OSC_Spect_RecieverAudioProcessor()
