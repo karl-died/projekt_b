@@ -18,7 +18,7 @@ class OSC_Spect_RecieverAudioProcessorEditor  : public juce::AudioProcessorEdito
                                                 
 {
 public:
-    OSC_Spect_RecieverAudioProcessorEditor (OSC_Spect_RecieverAudioProcessor&);
+    OSC_Spect_RecieverAudioProcessorEditor (OSC_Spect_RecieverAudioProcessor&, AudioProcessorValueTreeState&);
     ~OSC_Spect_RecieverAudioProcessorEditor() override;
 
     //==============================================================================
@@ -29,6 +29,7 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     OSC_Spect_RecieverAudioProcessor& audioProcessor;
+    AudioProcessorValueTreeState& valueTreeState;
     
     juce::Label portLabel;
     juce::Label portInputLabel;

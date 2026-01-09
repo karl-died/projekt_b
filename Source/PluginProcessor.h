@@ -12,6 +12,8 @@
 #include "MyOSCListener.h"
 #include "NoiseGenerator.h"
 
+using namespace juce;
+
 //==============================================================================
 /**
 */
@@ -63,9 +65,11 @@ public:
 
 private:
     //=============================================================================
-    const int DEFAULT_PORT = 6666;
+    const int DEFAULT_PORT = 7001;
     const char* dataAddress = "/chan1";
     const char* metaDataAddress = "";
+    
+    AudioProcessorValueTreeState parameters;
     
     double projectSampleRate = 48000;
     

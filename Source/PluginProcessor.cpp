@@ -20,13 +20,24 @@ OSC_Spect_RecieverAudioProcessor::OSC_Spect_RecieverAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ),
+parameters(*this, nullptr, Identifier("OSC_Spect_Reciever"),
+           {
+    std::make_unique<AudioParameterInt> (ParameterID {"port", 1 },
+                                           "Port",
+                                           0,
+                                           1 << 16,
+                                           DEFAULT_PORT)
+            }),
     noise(std::make_unique<NoiseGenerator>())
 #endif
 {
     dataListener = std::make_unique<MyOSCListener>([this] (const juce::OSCMessage& message) {
         oscMessageReceived(message);
     });
-    dataListener->connectTo(DEFAULT_PORT);
+    
+    juce::Value portValue = parameters.getParameterAsValue("port");
+    int port = portValue.getValue().toString().getIntValue();
+    dataListener->connectTo(port);
     
     amplitudes = std::vector<float>(fftSize / 2, 0.0f);
     fft = std::make_unique<juce::dsp::FFT>(fftOrder);
@@ -186,7 +197,7 @@ void OSC_Spect_RecieverAudioProcessor::processBlock (juce::AudioBuffer<float>& b
             if(amplitudesMutex.try_lock())
             {
                 for(int i = 0; i < fftSize / 2; i++)
-                    fft_in[i] = std::polar(amplitudes[i], (float)(2 * M_PI * noise->getNextValue()));
+                    fft_in[i] = std::polar(abs(amplitudes[i]), (float)(2 * M_PI * noise->getNextValue()));
                 
                 for(int i = 1; i < fftSize / 2; i++)
                     fft_in[fftSize - i] = std::conj(fft_in[i]);
@@ -218,21 +229,28 @@ bool OSC_Spect_RecieverAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* OSC_Spect_RecieverAudioProcessor::createEditor()
 {
-    return new OSC_Spect_RecieverAudioProcessorEditor (*this);
+    return new OSC_Spect_RecieverAudioProcessorEditor (*this, parameters);
 }
 
 //==============================================================================
 void OSC_Spect_RecieverAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    auto state = parameters.copyState();
+    std::unique_ptr<XmlElement> xml (state.createXml());
+    copyXmlToBinary (*xml, destData);
 }
 
 void OSC_Spect_RecieverAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+
+    if (xmlState.get() != nullptr)
+        if (xmlState->hasTagName (parameters.state.getType()))
+            parameters.replaceState (ValueTree::fromXml (*xmlState));
+
+    juce::Value portValue = parameters.getParameterAsValue("port");
+    int port = portValue.getValue().toString().getIntValue();
+    dataListener->connectTo(port);
 }
 
 //==============================================================================
@@ -270,6 +288,8 @@ void OSC_Spect_RecieverAudioProcessor::oscMessageReceived(const juce::OSCMessage
 void OSC_Spect_RecieverAudioProcessor::setOSCPort(int port)
 {
     dataListener->connectTo(port);
+    auto portParam = (AudioParameterInt*) parameters.getParameter("port");
+    *portParam = port;
 }
 
 void OSC_Spect_RecieverAudioProcessor::setOSCAddress(const char* address)
