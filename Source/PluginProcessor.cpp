@@ -209,6 +209,12 @@ void OSC_Spect_RecieverAudioProcessor::processBlock (juce::AudioBuffer<float>& b
                 amplitudesMutex.unlock();
             }
             
+            if(holdCounter >= maxHold)
+                for(int i = 0; i < fftSize / 2; i++)
+                    amplitudes[i] = 0;
+            else
+                holdCounter++;
+            
             sampleCounter = 0;
         }
     }
@@ -284,6 +290,7 @@ void OSC_Spect_RecieverAudioProcessor::oscMessageReceived(const juce::OSCMessage
         float index = (fftSize / 2) * pow(i * d, exponent);
         amplitudes[i] = rawAmplitudes[(int)index];
     }
+    holdCounter = 0;
 }
 
 void OSC_Spect_RecieverAudioProcessor::setOSCPort(int port)

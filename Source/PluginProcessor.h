@@ -89,6 +89,8 @@ private:
     std::unique_ptr<NoiseGenerator> noise;
     
     int sampleCounter = 0;
+    const std::atomic<int> maxHold = 20;
+    std::atomic<int> holdCounter = 0;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSC_Spect_RecieverAudioProcessor)
 };
