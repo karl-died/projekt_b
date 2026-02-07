@@ -189,9 +189,10 @@ void OSC_Spect_RecieverAudioProcessor::processBlock (juce::AudioBuffer<float>& b
     float d = 1.0 / fftSize;
     for (int sample = 0; sample < buffer.getNumSamples(); sample++)
     {
-        channel0Data[sample] = d * sampleCounter * fft_out[outIndex][sampleCounter].real();
-        channel0Data[sample] += (1 - d * sampleCounter) * fft_out[(outIndex + 1) % 2][sampleCounter].real();
-        
+    
+        channel0Data[sample]  = sin(M_PI * 0.5 * d * sampleCounter) * fft_out[outIndex][sampleCounter].real();
+        channel0Data[sample] += cos(M_PI * 0.5 * d * sampleCounter) * fft_out[(outIndex + 1) % 2][sampleCounter].real();
+          
         sampleCounter++;
         if(sampleCounter == fftSize)
         {
@@ -204,6 +205,7 @@ void OSC_Spect_RecieverAudioProcessor::processBlock (juce::AudioBuffer<float>& b
                     fft_in[fftSize - i] = std::conj(fft_in[i]);
                 
                 fft->perform(&fft_in[0], &fft_out[outIndex][0], true);
+                
                 outIndex++;
                 outIndex %= 2;
                 amplitudesMutex.unlock();
