@@ -27,7 +27,19 @@ parameters(*this, nullptr, Identifier("OSC_Spect_Reciever"),
                                            "Port",
                                            0,
                                            1 << 16,
-                                           DEFAULT_PORT)
+                                           DEFAULT_PORT),
+    std::make_unique<AudioParameterFloat> (ParameterID {"minFreq", 1},
+                                           "Min Frequancy",
+                                           NormalisableRange<float>(20.f, 1000.0f, 0.5f, 0.5f),
+                                           200.0f),
+    std::make_unique<AudioParameterFloat> (ParameterID {"maxFreq", 1},
+                                           "Max Frequancy",
+                                           NormalisableRange<float>(1000.f, 20000.0f, 0.5f, 0.5f),
+                                           10000.0f),
+    std::make_unique<AudioParameterFloat> (ParameterID {"skew", 1},
+                                           "Skew",
+                                           NormalisableRange<float>(0.1f, 2.0f, 0.01f, 1.0f),
+                                           0.5f)
             }),
     noise(std::make_unique<NoiseGenerator>())
 #endif
@@ -46,6 +58,10 @@ parameters(*this, nullptr, Identifier("OSC_Spect_Reciever"),
     fft_out[0] = std::vector<std::complex<float>>(fftSize, 0.0);
     fft_out[1] = std::vector<std::complex<float>>(fftSize, 0.0);
     
+    minF = parameters.getRawParameterValue("minFreq");
+    maxF = parameters.getRawParameterValue("maxFreq");
+    skew = parameters.getRawParameterValue("skew");
+
 }
 
 OSC_Spect_RecieverAudioProcessor::~OSC_Spect_RecieverAudioProcessor()
@@ -190,8 +206,8 @@ void OSC_Spect_RecieverAudioProcessor::processBlock (juce::AudioBuffer<float>& b
     for (int sample = 0; sample < buffer.getNumSamples(); sample++)
     {
     
-        channel0Data[sample]  = sin(M_PI * 0.5 * d * sampleCounter) * fft_out[outIndex][sampleCounter].real();
-        channel0Data[sample] += cos(M_PI * 0.5 * d * sampleCounter) * fft_out[(outIndex + 1) % 2][sampleCounter].real();
+        channel0Data[sample]  = cos(M_PI * 0.5 * d * sampleCounter) * fft_out[outIndex][sampleCounter].real();
+        channel0Data[sample] += sin(M_PI * 0.5 * d * sampleCounter) * fft_out[(outIndex + 1) % 2][sampleCounter].real();
           
         sampleCounter++;
         if(sampleCounter == fftSize)
@@ -205,7 +221,7 @@ void OSC_Spect_RecieverAudioProcessor::processBlock (juce::AudioBuffer<float>& b
                     fft_in[fftSize - i] = std::conj(fft_in[i]);
                 
                 fft->perform(&fft_in[0], &fft_out[outIndex][0], true);
-                
+
                 outIndex++;
                 outIndex %= 2;
                 amplitudesMutex.unlock();
@@ -287,10 +303,17 @@ void OSC_Spect_RecieverAudioProcessor::oscMessageReceived(const juce::OSCMessage
     float centerIndex = centerBin / (fftSize / 2);
     float exponent = log(0.5) / log(centerIndex);
     float d = 2.0 / fftSize;
-    for(int i = 1; i < fftSize / 2; i++)
+    int numBins = fftSize / 2;
+    float minBin = (minF->load() * numBins) / projectSampleRate;
+    float maxBin = (maxF->load() * numBins) / projectSampleRate;
+    float dm = maxBin / minBin;
+    for(int i = 1; i < numBins; i++)
     {
-        float index = (fftSize / 2) * pow(i * d, exponent);
-        amplitudes[i] = rawAmplitudes[(int)index];
+        //float index = (fftSize / 2) * pow(i * d, exponent);
+        //amplitudes[i] = rawAmplitudes[(int)index];
+        //int index = minBin * pow(maxBin / minBin, i / (numBins));
+        int index = (maxBin - minBin) * pow((float) i / numBins, skew->load()) + minBin;
+        amplitudes[index] = rawAmplitudes[i];
     }
     holdCounter = 0;
 }

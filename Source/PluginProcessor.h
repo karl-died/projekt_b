@@ -92,5 +92,9 @@ private:
     const std::atomic<int> maxHold = 20;
     std::atomic<int> holdCounter = 0;
     
+    std::atomic<float>* minF;
+    std::atomic<float>* maxF;
+    std::atomic<float>* skew;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSC_Spect_RecieverAudioProcessor)
 };

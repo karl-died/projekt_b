@@ -36,6 +36,33 @@ OSC_Spect_RecieverAudioProcessorEditor::OSC_Spect_RecieverAudioProcessorEditor (
         audioProcessor.setOSCAddress(addressInputLabel.getText().toRawUTF8());
     };
     
+    auto addSlider = [this] (LabeledSlider& slider, String suffix, int x, int y, int w, int h)
+    {
+        slider.label.setText(slider.labelName, dontSendNotification);
+        slider.label.setJustificationType(Justification::centred);
+        slider.label.setBounds(x, y, w, 50);
+        addAndMakeVisible(slider.label);
+        
+        slider.slider.setBounds(x, y + 35, w, h - 40);
+        slider.slider.setSliderStyle(Slider::SliderStyle::RotaryHorizontalVerticalDrag);
+        slider.slider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow,
+                                      false,
+                                      100,
+                                      15);
+        slider.slider.setTextValueSuffix(suffix);
+        addAndMakeVisible(slider.slider);
+        slider.attachment.reset(new SliderAttachment(this->valueTreeState,
+                                                     slider.parameterName,
+                                                     slider.slider));
+        slider.slider.onValueChange = [this] () {
+            this->repaint();
+        };
+    };
+    
+    addSlider(minFreqSlider, " Hz",   0, 100, 140, 145);
+    addSlider(maxFreqSlider, " Hz", 120, 100, 140, 145);
+    addSlider(skewSlider,       "", 240, 100, 140, 145);
+
     setSize (400, 300);
 }
 
